@@ -52,17 +52,17 @@ Keep `GRAPH_ENABLED=false` until `EventPlanning@thenuttypelican.com` is confirme
 
 1. In Microsoft Entra admin center, register a new single-tenant application.
 2. Create a client secret and store its value securely. Never commit it.
-3. Add Microsoft Graph **application** permissions `Mail.Send` and `Mail.Read`; then grant tenant admin consent.
-4. Set `GRAPH_MAILBOX_USER` to the real licensed mailbox that owns the alias. Set `OUTREACH_FROM_ADDRESS=EventPlanning@thenuttypelican.com`.
-5. In Exchange Online, confirm send-from-alias is enabled and test the alias manually first.
-6. For production, use an Exchange application access policy or Application RBAC to restrict the app to this mailbox. Broad tenant mail access is inappropriate.
+3. Do not add tenant-wide Microsoft Graph mail permissions in Entra. Use Exchange Online Application RBAC to assign `Application Mail.Read` and `Application Mail.Send` to the app within a custom resource scope for the owning mailbox.
+4. Verify the restriction with `Test-ServicePrincipalAuthorization`; both roles must show `InScope=True` for the owning mailbox and must not authorize unrelated mailboxes.
+5. Set `GRAPH_MAILBOX_USER` to the real licensed mailbox that owns the alias. Set `OUTREACH_FROM_ADDRESS=EventPlanning@thenuttypelican.com`.
+6. In Exchange Online, confirm send-from-alias is enabled and test the alias manually first.
 7. Fill the Graph values in `.env`, set `GRAPH_ENABLED=true`, restart the app, and send a test to an address you control.
 
 The client uses OAuth client credentials; no Microsoft password is stored. The configured mailbox must have permission to send from the alias. If Graph rejects the explicit `from` address in your tenant, use a dedicated licensed mailbox for `EventPlanning@...` or configure the mailbox's send-as permissions; do not work around the restriction with personal credentials.
 
 ### Import replies
 
-V1 matches replies to an event by the organizer's sender address, saves the raw message, and applies conservative extraction rules:
+V1 puts a durable token such as `[NP-EVENT-0011]` in every outgoing subject. Replies are matched by that token. Sender-address matching is used only as a fallback when the address belongs to exactly one event. The app saves the raw message and applies conservative extraction rules:
 
 ```bash
 flask --app run sync-inbox
@@ -91,4 +91,3 @@ The app can later run on Render, Railway, Azure App Service, or a small containe
 7. add an explicit review/approval screen before enabling automated sends or follow-ups.
 
 V1 intentionally does not include public deployment, autonomous discovery, AI-generated replies, background sending, applications, or payments. Those should be added only after the local workflow and review controls are proven.
-

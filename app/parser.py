@@ -25,10 +25,25 @@ def parse_organizer_response(text):
     lowered = text.lower()
     application_open = any(
         phrase in lowered
-        for phrase in ("applications are open", "application is open", "now accepting applications")
+        for phrase in (
+            "applications are open",
+            "applications are currently open",
+            "application is open",
+            "application is currently open",
+            "now accepting applications",
+        )
     )
     if application_open:
         updates["status"] = "Joe Action Required" if updates.get("application_url") else "Application Open"
+
+    permitted_products = []
+    if "permit" in lowered or "allow" in lowered:
+        if "cinnamon-glazed nuts" in lowered or "cinnamon glazed nuts" in lowered:
+            permitted_products.append("Fresh cinnamon-glazed nuts permitted")
+        if "gourmet popcorn" in lowered:
+            permitted_products.append("Gourmet popcorn permitted")
+    if permitted_products:
+        updates["product_rules"] = "; ".join(permitted_products)
 
     danger_terms = ("zelle", "venmo", "cashapp", "cash app", "wire transfer", "banking", "w-9", "tax id", "sign the contract")
     flags = [term for term in danger_terms if term in lowered]
@@ -37,4 +52,3 @@ def parse_organizer_response(text):
         "flags": flags,
         "needs_human_review": bool(flags) or application_open,
     }
-

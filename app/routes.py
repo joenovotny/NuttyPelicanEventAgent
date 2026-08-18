@@ -74,7 +74,7 @@ def parse_response(event_id):
 def send_outreach(event_id):
     event = db.get_or_404(Event, event_id)
     body = request.form.get("body", "").strip()
-    subject = request.form.get("subject", "").strip()
+    subject = _event_subject(event, request.form.get("subject", "").strip())
     try:
         GraphEmailClient().send(event.contact_email, subject, body)
     except (GraphNotConfigured, GuardrailViolation) as exc:
@@ -130,3 +130,7 @@ Nutty Pelican Events Team
 Event coordination for Joe Novotny
 {current_app.config['OUTREACH_FROM_ADDRESS']}"""
 
+
+def _event_subject(event, subject):
+    token = f"[NP-EVENT-{event.id:04d}]"
+    return subject if token.lower() in subject.lower() else f"{token} {subject}".strip()
