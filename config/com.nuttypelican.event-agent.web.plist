@@ -4,11 +4,11 @@
 <dict>
   <key>Label</key><string>com.nuttypelican.event-agent.web</string>
   <key>ProgramArguments</key>
-  <array><string>/Users/josephnovotny/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an-2/work/NuttyPelicanEventAgent/scripts/run-web.sh</string></array>
+  <array><string>/Users/josephnovotny/Library/Application Support/NuttyPelicanEventAgent/scripts/run-web.sh</string></array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>ProcessType</key><string>Interactive</string>
-  <key>StandardOutPath</key><string>/Users/josephnovotny/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an-2/work/NuttyPelicanEventAgent/instance/web.log</string>
-  <key>StandardErrorPath</key><string>/Users/josephnovotny/Documents/Codex/2026-08-17/referenced-chatgpt-conversation-this-is-an-2/work/NuttyPelicanEventAgent/instance/web-error.log</string>
+  <key>StandardOutPath</key><string>/Users/josephnovotny/Library/Application Support/NuttyPelicanEventAgent/instance/web.log</string>
+  <key>StandardErrorPath</key><string>/Users/josephnovotny/Library/Application Support/NuttyPelicanEventAgent/instance/web-error.log</string>
 </dict>
 </plist>
