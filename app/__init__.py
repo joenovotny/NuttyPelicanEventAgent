@@ -25,8 +25,10 @@ def create_app(test_config=None):
         DISCOVERY_INTERVAL_HOURS=int(os.getenv("DISCOVERY_INTERVAL_HOURS", "24")),
         DISCOVERY_AUTO_QUALIFY=os.getenv("DISCOVERY_AUTO_QUALIFY", "false").lower() == "true",
         BRAVE_SEARCH_API_KEY=os.getenv("BRAVE_SEARCH_API_KEY", ""),
+        BRAVE_MONTHLY_QUERY_LIMIT=int(os.getenv("BRAVE_MONTHLY_QUERY_LIMIT", "250")),
         OUTREACH_MENU_PATH=os.getenv("OUTREACH_MENU_PATH", ""),
         OUTREACH_PHOTO_PATHS=[value.strip() for value in os.getenv("OUTREACH_PHOTO_PATHS", "").split(",") if value.strip()],
+        ALERT_EMAIL_ADDRESS=os.getenv("ALERT_EMAIL_ADDRESS", ""),
     )
     if test_config:
         app.config.update(test_config)

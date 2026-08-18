@@ -99,6 +99,35 @@ Nutty Pelican Events Team
     return sent, stopped
 
 
+def _send_alert_notifications():
+    recipient = current_app.config["ALERT_EMAIL_ADDRESS"]
+    if not recipient:
+        return 0
+    sent = 0
+    for alert in Alert.query.filter_by(resolved=False).all():
+        marker = f"[ALERT-{alert.id}]"
+        if Message.query.filter_by(event_id=alert.event_id, direction="alert").filter(Message.subject.contains(marker)).first():
+            continue
+        subject = f"{marker} Joe action required — {alert.event.name}"
+        body = f"""Hello Joe,
+
+The Nutty Pelican Event Agent stopped automation for {alert.event.name} because your review is required.
+
+Review the event locally: http://127.0.0.1:5001/events/{alert.event.id}
+
+No protected action was taken.
+"""
+        try:
+            GraphEmailClient().send(recipient, subject, body)
+        except Exception as exc:
+            print(f"Alert notification will retry: {exc}", flush=True)
+            continue
+        db.session.add(Message(event=alert.event, direction="alert", subject=subject, body=body))
+        sent += 1
+    db.session.commit()
+    return sent
+
+
 def run_automation_once(now=None):
     """Import replies and perform only enabled, bounded outreach actions."""
     now = now or datetime.now(timezone.utc)
@@ -148,7 +177,8 @@ def run_automation_once(now=None):
             create_alert(event, "automation-error", "Automation stopped", str(exc))
             stopped += 1
     db.session.commit()
-    return {"discovery": discovery, "imported": imported, "sent_imported": sent_imported, "sent": sent, "stopped": stopped}
+    alerts_sent = _send_alert_notifications()
+    return {"discovery": discovery, "imported": imported, "sent_imported": sent_imported, "sent": sent, "stopped": stopped, "alerts_sent": alerts_sent}
 
 
 def run_worker():

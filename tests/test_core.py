@@ -76,6 +76,15 @@ class DiscoveryParserTests(unittest.TestCase):
         self.assertEqual(result["status"], "Researching")
         self.assertEqual(result["contact_email"], "")
 
+    def test_commercial_vendor_page_is_not_food_auto_qualified(self):
+        html = """
+        <html><h1>Commercial Vendor — Wilmington Riverfest 2026</h1>
+        <p>Festival vendor application information. Contact foodvendor@riverfest.example.</p></html>
+        """
+        result = parse_event_page("https://riverfest.example/commercial-vendors", html, "Official page")
+        self.assertEqual(result["status"], "Researching")
+        self.assertEqual(result["contact_email"], "")
+
 
 class EventTrackingTests(unittest.TestCase):
     def setUp(self):

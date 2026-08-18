@@ -31,7 +31,8 @@
     "2026 community festival food trucks Leland Southport Carolina Beach NC"
   ],
   "area_signals": ["wilmington", "new hanover", "leland", "carolina beach", "kure beach", "wrightsville beach", "southport", "bolivia", "shallotte", "burgaw", "hampstead", "pender county", "brunswick county"],
-  "aggregator_hosts": ["eventbrite.com", "facebook.com", "instagram.com", "wilmingtonandbeaches.com", "brunswicknc.com"],
+  "aggregator_hosts": ["eventbrite.com", "eventeny.com", "festivalnet.com", "festivals.com", "givsum.com", "facebook.com", "instagram.com", "wilmingtonandbeaches.com", "wilmington-nc.com", "brunswicknc.com", "southport-nc.com", "ncfoodtrucks.com"],
+  "excluded_area_signals": ["south carolina", "myrtle beach"],
   "event_signals": ["festival", "fair", "market", "celebration", "community day", "food truck", "street festival"],
   "vendor_signals": ["food vendor", "vendor application", "vendors wanted", "become a vendor", "vendor registration", "food truck"]
 }

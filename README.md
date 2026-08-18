@@ -126,6 +126,10 @@ BRAVE_SEARCH_API_KEY=your-private-key
 
 Brave search is the wide-net lead source; every result is fetched and checked again. Auto-outreach requires a Wilmington-area signal, event/festival signal, food/vendor signal, and published email on a non-aggregator page. Aggregator and tourism pages can create `Researching` leads but can never trigger outreach by themselves.
 
+`BRAVE_MONTHLY_QUERY_LIMIT` is a hard local request cap and defaults to 250, preventing the search bill from growing silently.
+
+Set `ALERT_EMAIL_ADDRESS` to receive a generic notification when automation stops for human review. Organizer-sensitive content remains in the local dashboard and is not copied into the alert email.
+
 Save the Brave key without exposing it in shell history by running `./scripts/set-brave-key.sh` after installing the latest runtime.
 
 ### Persistent macOS service
