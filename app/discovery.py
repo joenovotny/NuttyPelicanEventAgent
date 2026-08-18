@@ -146,7 +146,7 @@ def _brave_links(session, config):
     return [url for url in dict.fromkeys(links) if url.startswith("http")], errors
 
 
-def discover_events(session=None):
+def discover_events(session=None, auto_qualify=False):
     session = session or requests.Session()
     config = _config()
     created = qualified = checked = 0
@@ -174,6 +174,9 @@ def discover_events(session=None):
                 continue
             if not data:
                 continue
+            if data["status"] == "Qualified" and not auto_qualify:
+                data["status"] = "Researching"
+                data["notes"] += " Held for supervised discovery review."
             event = Event(**data)
             db.session.add(event)
             created += 1
@@ -193,6 +196,9 @@ def discover_events(session=None):
             continue
         if not data:
             continue
+        if data["status"] == "Qualified" and not auto_qualify:
+            data["status"] = "Researching"
+            data["notes"] += " Held for supervised discovery review."
         event = Event(**data)
         db.session.add(event)
         created += 1

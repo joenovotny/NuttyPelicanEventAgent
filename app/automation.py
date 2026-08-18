@@ -108,7 +108,7 @@ def run_automation_once(now=None):
         last_run = parse_date(state.value) if state and state.value else None
         due = not last_run or now - last_run >= timedelta(hours=current_app.config["DISCOVERY_INTERVAL_HOURS"])
         if due:
-            discovery = discover_events()
+            discovery = discover_events(auto_qualify=current_app.config["DISCOVERY_AUTO_QUALIFY"])
     imported = sync_inbox(current_app.config["AUTOMATION_LOOKBACK_HOURS"])
     sent_imported = sync_sent_items(current_app.config["AUTOMATION_LOOKBACK_HOURS"])
     sent, stopped = _send_requested_materials(now) if current_app.config["AUTOMATION_SEND_ENABLED"] else (0, 0)

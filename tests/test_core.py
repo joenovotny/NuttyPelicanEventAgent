@@ -134,6 +134,7 @@ class AutomationTests(unittest.TestCase):
             "AUTOMATION_MAX_FOLLOW_UPS": 2,
             "AUTOMATION_LOOKBACK_HOURS": 72,
             "DISCOVERY_ENABLED": False,
+            "DISCOVERY_AUTO_QUALIFY": False,
             "OUTREACH_MENU_PATH": "",
             "OUTREACH_PHOTO_PATHS": [],
         })

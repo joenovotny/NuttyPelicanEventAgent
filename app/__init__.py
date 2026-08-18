@@ -23,6 +23,7 @@ def create_app(test_config=None):
         AUTOMATION_MAX_FOLLOW_UPS=int(os.getenv("AUTOMATION_MAX_FOLLOW_UPS", "2")),
         DISCOVERY_ENABLED=os.getenv("DISCOVERY_ENABLED", "false").lower() == "true",
         DISCOVERY_INTERVAL_HOURS=int(os.getenv("DISCOVERY_INTERVAL_HOURS", "24")),
+        DISCOVERY_AUTO_QUALIFY=os.getenv("DISCOVERY_AUTO_QUALIFY", "false").lower() == "true",
         BRAVE_SEARCH_API_KEY=os.getenv("BRAVE_SEARCH_API_KEY", ""),
         OUTREACH_MENU_PATH=os.getenv("OUTREACH_MENU_PATH", ""),
         OUTREACH_PHOTO_PATHS=[value.strip() for value in os.getenv("OUTREACH_PHOTO_PATHS", "").split(",") if value.strip()],
