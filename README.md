@@ -104,6 +104,16 @@ flask --app run.py automation-worker
 
 The local worker runs only while the Mac is awake and the process is active. For reliable unattended operation, deploy the web app and worker to an always-on host with encrypted environment settings, authentication, PostgreSQL, backups, and HTTPS.
 
+### Persistent macOS service
+
+This repository includes launch-agent definitions for the local dashboard and worker in `config/`. When installed in `~/Library/LaunchAgents`, macOS starts both services at login and restarts them after a failure. The dashboard remains local-only at `http://127.0.0.1:5001`; logs are written under `instance/` and are excluded from Git.
+
+Install and start them with:
+
+```bash
+./scripts/install-macos-services.sh
+```
+
 ## Data and workflow notes
 
 - Seed facts are leads, not verified current event data. Confirm dates, fees, contacts, and links through official sources before outreach.
