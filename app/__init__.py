@@ -16,6 +16,11 @@ def create_app(test_config=None):
         OUTREACH_FROM_ADDRESS=os.getenv(
             "OUTREACH_FROM_ADDRESS", "EventPlanning@thenuttypelican.com"
         ),
+        AUTOMATION_SEND_ENABLED=os.getenv("AUTOMATION_SEND_ENABLED", "false").lower() == "true",
+        AUTOMATION_POLL_MINUTES=int(os.getenv("AUTOMATION_POLL_MINUTES", "10")),
+        AUTOMATION_LOOKBACK_HOURS=int(os.getenv("AUTOMATION_LOOKBACK_HOURS", "72")),
+        AUTOMATION_FOLLOW_UP_DAYS=int(os.getenv("AUTOMATION_FOLLOW_UP_DAYS", "3")),
+        AUTOMATION_MAX_FOLLOW_UPS=int(os.getenv("AUTOMATION_MAX_FOLLOW_UPS", "2")),
     )
     if test_config:
         app.config.update(test_config)
@@ -39,8 +44,21 @@ def create_app(test_config=None):
     @app.cli.command("sync-inbox")
     def sync_inbox_command():
         """Import and parse recent organizer replies from Microsoft 365."""
-        from .inbox import sync_inbox
+        from .inbox import sync_inbox, sync_sent_items
 
-        print(f"Processed {sync_inbox()} organizer replies.")
+        print(f"Processed {sync_inbox()} organizer replies and {sync_sent_items()} sent messages.")
+
+    @app.cli.command("automation-once")
+    def automation_once_command():
+        """Run one inbox and bounded-outreach automation cycle."""
+        from .automation import run_automation_once
+
+        print(run_automation_once())
+
+    @app.cli.command("automation-worker")
+    def automation_worker_command():
+        """Run the continuous local automation worker."""
+        from .automation import run_worker
+
+        run_worker()
     return app
-

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero"><div><p class="eyebrow">EVENT PIPELINE</p><h1>Keep the calendar full.</h1><p>Research, outreach, replies, and handoffs in one place.</p></div><div class="safety"><strong>Human approval boundary</strong><br>No applications, payments, contracts, or sensitive information.</div></section>
+{% if alert_count %}<div class="flash warning"><strong>{{ alert_count }} item{% if alert_count != 1 %}s{% endif %} need your attention.</strong> <a href="{{ url_for('main.alerts') }}">Review alerts →</a></div>{% endif %}
 <div class="status-grid">
   {% for status in statuses %}<a class="status-card {% if selected == status %}active{% endif %}" href="{{ url_for('main.dashboard', status=status) }}"><span>{{ counts[status] }}</span>{{ status }}</a>{% endfor %}
 </div>
@@ -16,4 +17,3 @@
 {% else %}<div class="empty"><h3>No events here yet.</h3><p>Add one manually or load the starter candidates.</p></div>{% endfor %}
 </div>
 {% endblock %}
-

@@ -57,18 +57,23 @@ class GraphEmailClient:
         response.raise_for_status()
 
     def recent_messages(self, since_iso):
+        return self._recent_folder_messages("inbox", since_iso)
+
+    def recent_sent_messages(self, since_iso):
+        return self._recent_folder_messages("sentitems", since_iso)
+
+    def _recent_folder_messages(self, folder, since_iso):
         token = self._token()
         response = requests.get(
-            f"{GRAPH_ROOT}/users/{self.mailbox}/mailFolders/inbox/messages",
+            f"{GRAPH_ROOT}/users/{self.mailbox}/mailFolders/{folder}/messages",
             headers={"Authorization": f"Bearer {token}"},
             params={
-                "$filter": f"receivedDateTime ge {since_iso}",
-                "$select": "id,subject,body,from,receivedDateTime",
-                "$orderby": "receivedDateTime asc",
+                "$filter": f"{'receivedDateTime' if folder == 'inbox' else 'sentDateTime'} ge {since_iso}",
+                "$select": "id,subject,body,from,receivedDateTime,sentDateTime",
+                "$orderby": "receivedDateTime asc" if folder == "inbox" else "sentDateTime asc",
                 "$top": "50",
             },
             timeout=20,
         )
         response.raise_for_status()
         return response.json().get("value", [])
-

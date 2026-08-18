@@ -68,7 +68,41 @@ V1 puts a durable token such as `[NP-EVENT-0011]` in every outgoing subject. Rep
 flask --app run sync-inbox
 ```
 
-Run this manually first. Later, a scheduler can invoke it every 10–15 minutes. Messages from unknown senders remain untouched; add a review queue before expanding that behavior.
+The same command also reconciles Outlook Sent Items. A manually sent message is attached to an event only when its subject retains the `[NP-EVENT-####]` token. Untagged sent messages and messages from unknown or ambiguous senders remain untouched.
+
+### Background automation
+
+Automation is off by default. Its boundaries are:
+
+- `Qualified` events with a contact email may receive the initial information-only outreach.
+- `Waiting` and `Follow-up Needed` events may receive a follow-up after the configured delay.
+- No more than `AUTOMATION_MAX_FOLLOW_UPS` are sent for an event.
+- Application openings, sensitive requests, send failures, and exhausted follow-ups stop the event at `Joe Action Required` and create a dashboard alert.
+- Applications, payments, contracts, commitments, and sensitive information remain prohibited.
+
+After supervised testing, set these values in `.env`:
+
+```text
+AUTOMATION_SEND_ENABLED=true
+AUTOMATION_POLL_MINUTES=10
+AUTOMATION_LOOKBACK_HOURS=72
+AUTOMATION_FOLLOW_UP_DAYS=3
+AUTOMATION_MAX_FOLLOW_UPS=2
+```
+
+Run one cycle first:
+
+```bash
+flask --app run.py automation-once
+```
+
+Then start the continuous local worker:
+
+```bash
+flask --app run.py automation-worker
+```
+
+The local worker runs only while the Mac is awake and the process is active. For reliable unattended operation, deploy the web app and worker to an always-on host with encrypted environment settings, authentication, PostgreSQL, backups, and HTTPS.
 
 ## Data and workflow notes
 

@@ -66,3 +66,13 @@ class Message(db.Model):
     graph_message_id = db.Column(db.String(300), unique=True)
     sent_at = db.Column(db.DateTime(timezone=True), default=now_utc)
 
+
+class Alert(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("event.id"), nullable=False)
+    kind = db.Column(db.String(40), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    detail = db.Column(db.Text, default="")
+    resolved = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=now_utc)
+    event = db.relationship("Event", backref="alerts")

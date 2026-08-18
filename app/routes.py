@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 
 from .email_service import GraphEmailClient, GraphNotConfigured
 from .guardrails import GuardrailViolation
-from .models import Event, Message, STATUSES, db
+from .models import Alert, Event, Message, STATUSES, db
 from .parser import parse_organizer_response
 from .questions import missing_questions
 from .seed import seed_events
@@ -18,7 +18,23 @@ def dashboard():
     query = Event.query.order_by(Event.score.desc().nullslast(), Event.name)
     events = query.filter_by(status=selected).all() if selected else query.all()
     counts = {status: Event.query.filter_by(status=status).count() for status in STATUSES}
-    return render_template("dashboard.html", events=events, statuses=STATUSES, counts=counts, selected=selected)
+    alert_count = Alert.query.filter_by(resolved=False).count()
+    return render_template("dashboard.html", events=events, statuses=STATUSES, counts=counts, selected=selected, alert_count=alert_count)
+
+
+@bp.get("/alerts")
+def alerts():
+    items = Alert.query.order_by(Alert.resolved, Alert.created_at.desc()).all()
+    return render_template("alerts.html", alerts=items)
+
+
+@bp.post("/alerts/<int:alert_id>/resolve")
+def resolve_alert(alert_id):
+    alert = db.get_or_404(Alert, alert_id)
+    alert.resolved = True
+    db.session.commit()
+    flash("Alert marked resolved.", "success")
+    return redirect(url_for("main.alerts"))
 
 
 @bp.route("/events/new", methods=["GET", "POST"])
@@ -82,6 +98,7 @@ def send_outreach(event_id):
         return redirect(url_for("main.event_detail", event_id=event.id))
     event.status = "Waiting"
     event.last_contact_at = datetime.now(timezone.utc)
+    event.follow_up_at = datetime.now(timezone.utc) + timedelta(days=current_app.config["AUTOMATION_FOLLOW_UP_DAYS"])
     db.session.add(Message(event=event, direction="outbound", subject=subject, body=body))
     db.session.commit()
     flash("Outreach sent and event moved to Waiting.", "success")

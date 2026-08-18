@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="detail-heading"><div><a href="{{ url_for('main.dashboard') }}">← Pipeline</a><h1>Joe action required</h1><p>Automation stops here until you review these items.</p></div></div>
+<div class="alert-list">
+{% for alert in alerts %}
+  <article class="panel alert-item {% if alert.resolved %}resolved{% endif %}">
+    <div><span class="pill">{{ alert.kind }}</span><h2>{{ alert.title }}</h2><p><a href="{{ url_for('main.event_detail', event_id=alert.event.id) }}">{{ alert.event.name }}</a></p><p>{{ alert.detail }}</p></div>
+    {% if not alert.resolved %}<form method="post" action="{{ url_for('main.resolve_alert', alert_id=alert.id) }}"><button>Mark resolved</button></form>{% endif %}
+  </article>
+{% else %}<div class="empty"><h3>No alerts.</h3><p>The automation has not found anything requiring your action.</p></div>{% endfor %}
+</div>
+{% endblock %}

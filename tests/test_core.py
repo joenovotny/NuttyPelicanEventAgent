@@ -1,4 +1,6 @@
 import unittest
+from datetime import datetime, timezone
+from unittest.mock import patch
 
 from app import create_app
 from app.guardrails import GuardrailViolation, validate_outbound
@@ -6,6 +8,7 @@ from app.inbox import match_event
 from app.models import Event, db
 from app.parser import parse_organizer_response
 from app.routes import _event_subject
+from app.automation import run_automation_once
 
 
 class ParserTests(unittest.TestCase):
@@ -83,6 +86,38 @@ class GuardrailTests(unittest.TestCase):
             "We are gathering information only. Joe will personally review and complete "
             "any application, agreement, or payment."
         )
+
+
+class AutomationTests(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app({
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "AUTOMATION_SEND_ENABLED": True,
+            "AUTOMATION_FOLLOW_UP_DAYS": 3,
+            "AUTOMATION_MAX_FOLLOW_UPS": 2,
+            "AUTOMATION_LOOKBACK_HOURS": 72,
+        })
+        self.context = self.app.app_context()
+        self.context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.context.pop()
+
+    @patch("app.automation.sync_inbox", return_value=0)
+    @patch("app.automation.sync_sent_items", return_value=0)
+    @patch("app.automation.GraphEmailClient.send")
+    def test_qualified_event_gets_one_tagged_outreach(self, send, sent_sync, inbox_sync):
+        event = Event(name="Automation Test", contact_email="organizer@example.com", status="Qualified")
+        db.session.add(event)
+        db.session.commit()
+        result = run_automation_once(datetime(2026, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(result["sent"], 1)
+        self.assertEqual(event.status, "Waiting")
+        self.assertIn(f"[NP-EVENT-{event.id:04d}]", send.call_args.args[1])
 
 
 if __name__ == "__main__":
