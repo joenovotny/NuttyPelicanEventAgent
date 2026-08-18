@@ -2,6 +2,7 @@
 set -eu
 
 RUNTIME_ENV="/Users/josephnovotny/Library/Application Support/NuttyPelicanEventAgent/.env"
+RUNTIME_DB="/Users/josephnovotny/Library/Application Support/NuttyPelicanEventAgent/instance/events.db"
 USER_DOMAIN="gui/$(id -u)"
 
 set_value() {
@@ -30,6 +31,15 @@ set_value "DISCOVERY_AUTO_QUALIFY" "true"
 set_value "DISCOVERY_INTERVAL_HOURS" "24"
 set_value "BRAVE_MONTHLY_QUERY_LIMIT" "250"
 set_value "ALERT_EMAIL_ADDRESS" "joenovotny@me.com"
+
+# Make the first enabled discovery/recheck run immediately.
+"/Users/josephnovotny/Library/Application Support/NuttyPelicanEventAgent/.venv/bin/python" - "$RUNTIME_DB" <<'PY'
+import sqlite3
+import sys
+
+with sqlite3.connect(sys.argv[1]) as connection:
+    connection.execute("DELETE FROM automation_state WHERE key = 'last_discovery_at'")
+PY
 
 launchctl kickstart -k "$USER_DOMAIN/com.nuttypelican.event-agent.worker"
 echo "Daily discovery, conservative auto-qualification, and Joe email alerts are enabled."
