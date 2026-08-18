@@ -26,6 +26,8 @@ def create_app(test_config=None):
         DISCOVERY_AUTO_QUALIFY=os.getenv("DISCOVERY_AUTO_QUALIFY", "false").lower() == "true",
         BRAVE_SEARCH_API_KEY=os.getenv("BRAVE_SEARCH_API_KEY", ""),
         BRAVE_MONTHLY_QUERY_LIMIT=int(os.getenv("BRAVE_MONTHLY_QUERY_LIMIT", "250")),
+        RESEARCH_BATCH_SIZE=int(os.getenv("RESEARCH_BATCH_SIZE", "10")),
+        RESEARCH_MAX_ATTEMPTS=int(os.getenv("RESEARCH_MAX_ATTEMPTS", "3")),
         OUTREACH_MENU_PATH=os.getenv("OUTREACH_MENU_PATH", ""),
         OUTREACH_PHOTO_PATHS=[value.strip() for value in os.getenv("OUTREACH_PHOTO_PATHS", "").split(",") if value.strip()],
         ALERT_EMAIL_ADDRESS=os.getenv("ALERT_EMAIL_ADDRESS", ""),

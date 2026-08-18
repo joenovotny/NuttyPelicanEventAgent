@@ -8,8 +8,9 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_date
+from flask import current_app
 
-from .models import AutomationState, Event, db
+from .models import Alert, AutomationState, Event, db
 
 
 EMAIL_PATTERN = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
@@ -143,36 +144,104 @@ def _candidate_links(source, html):
     return list(dict.fromkeys(links))[:40]
 
 
-def _brave_links(session, config):
+def _brave_query(session, query, count=10):
     key = os.getenv("BRAVE_SEARCH_API_KEY", "")
     if not key:
-        return [], ["Broad web search is not configured: BRAVE_SEARCH_API_KEY is empty."]
-    links = []
-    errors = []
+        return [], "Broad web search is not configured: BRAVE_SEARCH_API_KEY is empty."
     month_key = f"brave_queries_{datetime.now(timezone.utc):%Y-%m}"
     state = db.session.get(AutomationState, month_key) or AutomationState(key=month_key, value="0")
     used = int(state.value or 0)
     limit = int(os.getenv("BRAVE_MONTHLY_QUERY_LIMIT", "250"))
-    remaining = max(0, limit - used)
-    if not remaining:
-        return [], [f"Brave monthly query limit reached ({limit})."]
-    attempted = 0
-    for query in config["search_queries"][:remaining]:
-        attempted += 1
-        try:
-            response = session.get(
-                "https://api.search.brave.com/res/v1/web/search",
-                headers={"Accept": "application/json", "X-Subscription-Token": key},
-                params={"q": query, "count": 10, "country": "us", "search_lang": "en"},
-                timeout=20,
-            )
-            response.raise_for_status()
-            links.extend(item.get("url", "") for item in response.json().get("web", {}).get("results", []))
-        except (requests.RequestException, ValueError) as exc:
-            errors.append(f"Brave search '{query}': {exc}")
-    state.value = str(used + attempted)
+    if used >= limit:
+        return [], f"Brave monthly query limit reached ({limit})."
+    state.value = str(used + 1)
     db.session.add(state)
-    return [url for url in dict.fromkeys(links) if url.startswith("http")], errors
+    try:
+        response = session.get(
+            "https://api.search.brave.com/res/v1/web/search",
+            headers={"Accept": "application/json", "X-Subscription-Token": key},
+            params={"q": query, "count": count, "country": "us", "search_lang": "en"},
+            timeout=20,
+        )
+        response.raise_for_status()
+        links = [item.get("url", "") for item in response.json().get("web", {}).get("results", [])]
+        return [url for url in dict.fromkeys(links) if url.startswith("http")], None
+    except (requests.RequestException, ValueError) as exc:
+        return [], f"Brave search '{query}': {exc}"
+
+
+def _brave_links(session, config):
+    links = []
+    errors = []
+    for query in config["search_queries"]:
+        result, error = _brave_query(session, query, 10)
+        links.extend(result)
+        if error:
+            errors.append(error)
+            if "monthly query limit" in error or "not configured" in error:
+                break
+    return list(dict.fromkeys(links)), errors
+
+
+def _attempts(event_id):
+    state = db.session.get(AutomationState, f"research_attempts_{event_id}")
+    return int(state.value or 0) if state else 0
+
+
+def _set_attempts(event_id, value):
+    key = f"research_attempts_{event_id}"
+    state = db.session.get(AutomationState, key) or AutomationState(key=key)
+    state.value = str(value)
+    db.session.add(state)
+
+
+def _same_event(original_name, candidate_name):
+    ignored = {"festival", "fest", "event", "events", "vendor", "vendors", "application", "food", "2026", "the", "and"}
+    original = {word for word in re.findall(r"[a-z0-9]+", original_name.lower()) if len(word) > 3 and word not in ignored}
+    candidate = {word for word in re.findall(r"[a-z0-9]+", candidate_name.lower()) if len(word) > 3 and word not in ignored}
+    return bool(original & candidate)
+
+
+def research_queue(session, config, auto_qualify):
+    events = Event.query.filter_by(status="Researching").all()
+    events.sort(key=lambda event: (_attempts(event.id), event.created_at.isoformat() if event.created_at else ""))
+    researched = promoted = action_required = 0
+    errors = []
+    for event in events[:current_app.config["RESEARCH_BATCH_SIZE"]]:
+        attempts = _attempts(event.id) + 1
+        query = f'"{event.name}" food vendor application contact Wilmington NC'
+        links, error = _brave_query(session, query, 5)
+        if error:
+            errors.append(error)
+            if "monthly query limit" in error or "not configured" in error:
+                break
+        _set_attempts(event.id, attempts)
+        researched += 1
+        found = False
+        for url in links:
+            try:
+                response = session.get(url, headers={"User-Agent": USER_AGENT}, timeout=10)
+                response.raise_for_status()
+                data = parse_event_page(url, response.text, "event-specific research", config)
+            except requests.RequestException:
+                continue
+            if not data or not _same_event(event.name, data["name"]):
+                continue
+            found = True
+            for field in ("name", "location", "start_date", "end_date", "contact_email", "application_url", "score"):
+                if data.get(field):
+                    setattr(event, field, data[field])
+            event.website = url
+            event.notes = data["notes"] + f" Event-specific research attempt {attempts}."
+            if auto_qualify and data["status"] == "Qualified":
+                event.status = "Qualified"
+                promoted += 1
+            break
+        if not found and attempts >= current_app.config["RESEARCH_MAX_ATTEMPTS"]:
+            event.status = "Joe Action Required"
+            db.session.add(Alert(event=event, kind="research-exhausted", title="Automated research needs help", detail=f"No verified food-vendor contact found after {attempts} searches."))
+            action_required += 1
+    return {"researched": researched, "promoted": promoted, "action_required": action_required, "errors": errors}
 
 
 def discover_events(session=None, auto_qualify=False):
@@ -250,8 +319,10 @@ def discover_events(session=None, auto_qualify=False):
         db.session.add(event)
         created += 1
         qualified += event.status == "Qualified"
+    research = research_queue(session, config, auto_qualify)
+    errors.extend(research["errors"])
     state = db.session.get(AutomationState, "last_discovery_at") or AutomationState(key="last_discovery_at")
     state.value = datetime.now(timezone.utc).isoformat()
     db.session.add(state)
     db.session.commit()
-    return {"checked": checked, "created": created, "qualified": qualified, "promoted": promoted, "errors": errors}
+    return {"checked": checked, "created": created, "qualified": qualified, "promoted": promoted, "research": research, "errors": errors}

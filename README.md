@@ -128,6 +128,8 @@ Brave search is the wide-net lead source; every result is fetched and checked ag
 
 `BRAVE_MONTHLY_QUERY_LIMIT` is a hard local request cap and defaults to 250, preventing the search bill from growing silently.
 
+The research queue processes up to `RESEARCH_BATCH_SIZE` least-researched events per daily cycle. Each receives a targeted search for its event name plus food-vendor application/contact terms. A verified match can promote the event to `Qualified`; after `RESEARCH_MAX_ATTEMPTS` unsuccessful cycles, the event moves to `Joe Action Required` rather than remaining stuck or being falsely declined.
+
 Set `ALERT_EMAIL_ADDRESS` to receive a generic notification when automation stops for human review. Organizer-sensitive content remains in the local dashboard and is not copied into the alert email.
 
 Save the Brave key without exposing it in shell history by running `./scripts/set-brave-key.sh` after installing the latest runtime.

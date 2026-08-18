@@ -30,6 +30,8 @@ set_value "DISCOVERY_ENABLED" "true"
 set_value "DISCOVERY_AUTO_QUALIFY" "true"
 set_value "DISCOVERY_INTERVAL_HOURS" "24"
 set_value "BRAVE_MONTHLY_QUERY_LIMIT" "250"
+set_value "RESEARCH_BATCH_SIZE" "10"
+set_value "RESEARCH_MAX_ATTEMPTS" "3"
 set_value "ALERT_EMAIL_ADDRESS" "joenovotny@me.com"
 
 # Make the first enabled discovery/recheck run immediately.
