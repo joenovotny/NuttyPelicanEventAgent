@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}<h1>{{ title }}</h1><form class="panel form-grid" method="post">
+  <label class="wide">Event name<input name="name" required value="{{ event.name or '' }}"></label>
+  <label>Location<input name="location" value="{{ event.location or '' }}"></label>
+  <label>Status<select name="status">{% for s in statuses %}<option {% if event.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+  <label>Start date<input type="date" name="start_date" value="{{ event.start_date or '' }}"></label><label>End date<input type="date" name="end_date" value="{{ event.end_date or '' }}"></label>
+  <label>Drive minutes<input type="number" name="drive_minutes" value="{{ event.drive_minutes or '' }}"></label><label>Score / 100<input type="number" min="0" max="100" name="score" value="{{ event.score or '' }}"></label>
+  <label class="wide">Website<input type="url" name="website" value="{{ event.website or '' }}"></label>
+  <label class="wide">Notes<textarea name="notes">{{ event.notes or '' }}</textarea></label>
+  <div class="wide actions"><button>Save event</button><a href="{{ url_for('main.dashboard') }}">Cancel</a></div>
+</form>{% endblock %}
+

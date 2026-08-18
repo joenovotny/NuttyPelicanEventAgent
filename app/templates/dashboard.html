@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero"><div><p class="eyebrow">EVENT PIPELINE</p><h1>Keep the calendar full.</h1><p>Research, outreach, replies, and handoffs in one place.</p></div><div class="safety"><strong>Human approval boundary</strong><br>No applications, payments, contracts, or sensitive information.</div></section>
+<div class="status-grid">
+  {% for status in statuses %}<a class="status-card {% if selected == status %}active{% endif %}" href="{{ url_for('main.dashboard', status=status) }}"><span>{{ counts[status] }}</span>{{ status }}</a>{% endfor %}
+</div>
+<div class="toolbar"><h2>{% if selected %}{{ selected }}{% else %}All candidates{% endif %}</h2>{% if not events %}<form method="post" action="{{ url_for('main.seed') }}"><button>Load Wilmington-area candidates</button></form>{% endif %}</div>
+<div class="event-grid">
+{% for event in events %}
+  <a class="event-card" href="{{ url_for('main.event_detail', event_id=event.id) }}">
+    <div class="event-top"><span class="pill">{{ event.status }}</span>{% if event.score %}<span class="score">{{ event.score }}/100</span>{% endif %}</div>
+    <h3>{{ event.name }}</h3><p>{{ event.location }}{% if event.drive_minutes %} · {{ event.drive_minutes }} min{% endif %}</p>
+    <dl><div><dt>Attendance</dt><dd>{{ event.expected_attendance or 'Unknown' }}</dd></div><div><dt>Vendor fee</dt><dd>{{ event.vendor_fee or 'Unknown' }}</dd></div></dl>
+    {% if event.notes %}<p class="note">{{ event.notes|truncate(140) }}</p>{% endif %}
+  </a>
+{% else %}<div class="empty"><h3>No events here yet.</h3><p>Add one manually or load the starter candidates.</p></div>{% endfor %}
+</div>
+{% endblock %}
+

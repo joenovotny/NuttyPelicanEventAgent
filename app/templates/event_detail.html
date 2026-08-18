@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="detail-heading"><div><a href="{{ url_for('main.dashboard') }}">← Pipeline</a><h1>{{ event.name }}</h1><p>{{ event.location }}</p></div><span class="pill large">{{ event.status }}</span></div>
+<div class="two-column"><div>
+<form class="panel form-grid" method="post"><h2 class="wide">Event record</h2>
+  <label>Status<select name="status">{% for s in statuses %}<option {% if event.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label><label>Score<input type="number" name="score" value="{{ event.score or '' }}"></label>
+  <label>Start date<input type="date" name="start_date" value="{{ event.start_date or '' }}"></label><label>End date<input type="date" name="end_date" value="{{ event.end_date or '' }}"></label>
+  <label>Drive minutes<input type="number" name="drive_minutes" value="{{ event.drive_minutes or '' }}"></label><label>Attendance<input name="expected_attendance" value="{{ event.expected_attendance or '' }}"></label>
+  <label>Vendor fee<input name="vendor_fee" value="{{ event.vendor_fee or '' }}"></label><label>Deadline<input name="application_deadline" value="{{ event.application_deadline or '' }}"></label>
+  <label>Contact name<input name="contact_name" value="{{ event.contact_name or '' }}"></label><label>Contact email<input type="email" name="contact_email" value="{{ event.contact_email or '' }}"></label>
+  <label class="wide">Website<input type="url" name="website" value="{{ event.website or '' }}"></label><label class="wide">Official application URL<input type="url" name="application_url" value="{{ event.application_url or '' }}"></label>
+  {% for field, label in [('operating_hours','Operating hours'),('food_vendor_count','Food vendor count'),('product_rules','Product/exclusivity rules'),('power_details','Power/generator details'),('permit_requirements','Permit requirements'),('insurance_requirements','Insurance requirements'),('setup_details','Setup/parking/security'),('cancellation_policy','Cancellation/refund policy'),('notes','Notes')] %}<label class="wide">{{ label }}<textarea name="{{ field }}">{{ event|attr(field) or '' }}</textarea></label>{% endfor %}
+  <button class="wide">Save changes</button>
+</form></div><aside>
+  <section class="panel"><h2>Missing information</h2>{% if questions %}<ul>{% for q in questions %}<li>{{ q }}</li>{% endfor %}</ul>{% else %}<p>All standard questions have answers.</p>{% endif %}</section>
+  <section class="panel"><h2>Outreach draft</h2><form method="post" action="{{ url_for('main.send_outreach', event_id=event.id) }}"><input name="subject" value="Food vendor inquiry — {{ event.name }}"><textarea class="draft" name="body">{{ outreach }}</textarea><button {% if not event.contact_email %}disabled title="Add a contact email first"{% endif %}>Send with Microsoft 365</button><p class="hint">Sending stays disabled by configuration until Graph is connected.</p></form></section>
+  <section class="panel"><h2>Record organizer reply</h2><form method="post" action="{{ url_for('main.parse_response', event_id=event.id) }}"><input name="subject" placeholder="Subject"><textarea class="draft short" name="body" placeholder="Paste the response here..."></textarea><button>Parse and update</button><p class="hint">V1 extracts clear facts only and flags applications or risky payment requests for review.</p></form></section>
+  {% if event.messages %}<section class="panel"><h2>Message history</h2>{% for message in event.messages|reverse %}<article class="message"><strong>{{ message.direction|title }} · {{ message.subject }}</strong><p>{{ message.body|truncate(240) }}</p></article>{% endfor %}</section>{% endif %}
+</aside></div>
+{% endblock %}
+
