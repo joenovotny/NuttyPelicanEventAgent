@@ -126,6 +126,8 @@ BRAVE_SEARCH_API_KEY=your-private-key
 
 Brave search is the wide-net lead source; every result is fetched and checked again. Auto-outreach requires a Wilmington-area signal, event/festival signal, food/vendor signal, and published email on a non-aggregator page. Aggregator and tourism pages can create `Researching` leads but can never trigger outreach by themselves.
 
+Save the Brave key without exposing it in shell history by running `./scripts/set-brave-key.sh` after installing the latest runtime.
+
 ### Persistent macOS service
 
 This repository includes launch-agent definitions for the local dashboard and worker in `config/`. When installed in `~/Library/LaunchAgents`, macOS starts both services at login and restarts them after a failure. The dashboard remains local-only at `http://127.0.0.1:5001`; logs are written under `instance/` and are excluded from Git.
