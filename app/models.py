@@ -76,3 +76,18 @@ class Alert(db.Model):
     resolved = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime(timezone=True), default=now_utc)
     event = db.relationship("Event", backref="alerts")
+
+
+class AutomationState(db.Model):
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text, default="")
+
+
+class MaterialRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("event.id"), nullable=False)
+    graph_message_id = db.Column(db.String(300), unique=True)
+    requested = db.Column(db.String(120), nullable=False)
+    fulfilled = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=now_utc)
+    event = db.relationship("Event", backref="material_requests")

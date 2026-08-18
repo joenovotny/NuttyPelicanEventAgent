@@ -4,7 +4,7 @@ import re
 from flask import current_app
 
 from .email_service import GraphEmailClient
-from .models import Alert, Event, Message, db
+from .models import Alert, Event, MaterialRequest, Message, db
 from .parser import parse_organizer_response
 from .questions import missing_questions
 
@@ -39,6 +39,12 @@ def sync_inbox(since_hours=72):
         matched_events[event.id] = event
         body = ((item.get("body") or {}).get("content") or "")
         result = parse_organizer_response(body)
+        if result["material_requests"]:
+            db.session.add(MaterialRequest(
+                event=event,
+                graph_message_id=graph_id,
+                requested=",".join(result["material_requests"]),
+            ))
         for field, value in result["updates"].items():
             setattr(event, field, value)
         if result["updates"]:
@@ -58,6 +64,10 @@ def sync_inbox(since_hours=72):
                 title="Application is open",
                 detail="Review the organizer reply and complete the application personally.",
             ))
+        elif result["updates"].get("status") == "Declined/Skip":
+            event.follow_up_at = None
+        elif result["updates"].get("status") == "Researching":
+            event.follow_up_at = datetime.now(timezone.utc) + timedelta(days=30)
         elif result["updates"] and missing_questions(event):
             event.status = "Follow-up Needed"
             event.follow_up_at = datetime.now(timezone.utc) + timedelta(days=2)

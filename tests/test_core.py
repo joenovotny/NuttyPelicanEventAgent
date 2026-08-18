@@ -9,6 +9,7 @@ from app.models import Event, db
 from app.parser import parse_organizer_response
 from app.routes import _event_subject
 from app.automation import run_automation_once
+from app.discovery import parse_event_page
 
 
 class ParserTests(unittest.TestCase):
@@ -39,6 +40,41 @@ class ParserTests(unittest.TestCase):
     def test_currently_open_sets_application_status(self):
         result = parse_organizer_response("Applications are currently open.")
         self.assertEqual(result["updates"]["status"], "Application Open")
+
+    def test_closed_vendor_response_is_declined(self):
+        result = parse_organizer_response("We are not accepting food vendors this year.")
+        self.assertEqual(result["updates"]["status"], "Declined/Skip")
+
+    def test_not_open_yet_is_scheduled_for_research(self):
+        result = parse_organizer_response("Vendor applications are not open yet. Please check back.")
+        self.assertEqual(result["updates"]["status"], "Researching")
+
+    def test_detects_menu_and_photo_request(self):
+        result = parse_organizer_response("Could you send your menu and pricing plus product photos?")
+        self.assertEqual(result["material_requests"], ["menu", "photos"])
+
+
+class DiscoveryParserTests(unittest.TestCase):
+    def test_official_vendor_page_can_qualify_event(self):
+        html = """
+        <html><h1>Riverfront Food Festival</h1>
+        <p>Food vendor applications are open. Contact vendors@festival.example.</p>
+        <a href="/vendor-application">Vendor application</a>
+        <script type="application/ld+json">{
+          "@type":"Event", "name":"Riverfront Food Festival",
+          "startDate":"2026-10-03", "location":{"address":{"addressLocality":"Wilmington","addressRegion":"NC"}}
+        }</script></html>
+        """
+        result = parse_event_page("https://festival.example/event", html, "Official calendar")
+        self.assertEqual(result["status"], "Qualified")
+        self.assertEqual(result["contact_email"], "vendors@festival.example")
+        self.assertEqual(result["start_date"], "2026-10-03")
+
+    def test_email_without_vendor_signal_is_not_auto_qualified(self):
+        html = "<h1>Community Festival</h1><p>Wilmington, NC. Contact info@example.org for details.</p>"
+        result = parse_event_page("https://example.org/event", html, "Official calendar")
+        self.assertEqual(result["status"], "Researching")
+        self.assertEqual(result["contact_email"], "")
 
 
 class EventTrackingTests(unittest.TestCase):
@@ -97,6 +133,9 @@ class AutomationTests(unittest.TestCase):
             "AUTOMATION_FOLLOW_UP_DAYS": 3,
             "AUTOMATION_MAX_FOLLOW_UPS": 2,
             "AUTOMATION_LOOKBACK_HOURS": 72,
+            "DISCOVERY_ENABLED": False,
+            "OUTREACH_MENU_PATH": "",
+            "OUTREACH_PHOTO_PATHS": [],
         })
         self.context = self.app.app_context()
         self.context.push()

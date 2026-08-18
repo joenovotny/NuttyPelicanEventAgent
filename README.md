@@ -104,6 +104,28 @@ flask --app run.py automation-worker
 
 The local worker runs only while the Mac is awake and the process is active. For reliable unattended operation, deploy the web app and worker to an always-on host with encrypted environment settings, authentication, PostgreSQL, backups, and HTTPS.
 
+### Automatic discovery
+
+The discovery job runs daily when `DISCOVERY_ENABLED=true`. It combines configured regional calendars with optional broad web search through the Brave Search API, and saves the source URL and verification date. It never invents an email address. Calendar and query coverage is configured in `config/discovery_sources.json` and is intentionally expandable.
+
+An event is automatically marked `Qualified` only when the official page contains both a published email address and a food/vendor signal such as “food vendor” or “vendor application.” Other plausible events remain `Researching` and receive no email. Existing source URLs are deduplicated.
+
+Run a supervised discovery cycle with:
+
+```bash
+flask --app run.py discover-now
+```
+
+Review the new records before enabling scheduled discovery:
+
+```text
+DISCOVERY_ENABLED=true
+DISCOVERY_INTERVAL_HOURS=24
+BRAVE_SEARCH_API_KEY=your-private-key
+```
+
+Brave search is the wide-net lead source; every result is fetched and checked again. Auto-outreach requires a Wilmington-area signal, event/festival signal, food/vendor signal, and published email on a non-aggregator page. Aggregator and tourism pages can create `Researching` leads but can never trigger outreach by themselves.
+
 ### Persistent macOS service
 
 This repository includes launch-agent definitions for the local dashboard and worker in `config/`. When installed in `~/Library/LaunchAgents`, macOS starts both services at login and restarts them after a failure. The dashboard remains local-only at `http://127.0.0.1:5001`; logs are written under `instance/` and are excluded from Git.

@@ -1,4 +1,7 @@
 import os
+import base64
+import mimetypes
+from pathlib import Path
 
 import requests
 
@@ -38,18 +41,33 @@ class GraphEmailClient:
         response.raise_for_status()
         return response.json()["access_token"]
 
-    def send(self, recipient, subject, body):
+    def send(self, recipient, subject, body, attachments=None):
         validate_outbound(body)
+        encoded_attachments = []
+        for item in attachments or []:
+            path = Path(item)
+            data = path.read_bytes()
+            if len(data) > 3_000_000:
+                raise ValueError(f"Attachment is too large for V1 direct sending: {path.name}")
+            encoded_attachments.append({
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": path.name,
+                "contentType": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+                "contentBytes": base64.b64encode(data).decode("ascii"),
+            })
+        message = {
+            "subject": subject,
+            "body": {"contentType": "Text", "content": body},
+            "toRecipients": [{"emailAddress": {"address": recipient}}],
+            "from": {"emailAddress": {"address": os.getenv("OUTREACH_FROM_ADDRESS", self.mailbox)}},
+        }
+        if encoded_attachments:
+            message["attachments"] = encoded_attachments
         response = requests.post(
             f"{GRAPH_ROOT}/users/{self.mailbox}/sendMail",
             headers={"Authorization": f"Bearer {self._token()}", "Content-Type": "application/json"},
             json={
-                "message": {
-                    "subject": subject,
-                    "body": {"contentType": "Text", "content": body},
-                    "toRecipients": [{"emailAddress": {"address": recipient}}],
-                    "from": {"emailAddress": {"address": os.getenv("OUTREACH_FROM_ADDRESS", self.mailbox)}},
-                },
+                "message": message,
                 "saveToSentItems": True,
             },
             timeout=20,

@@ -36,6 +36,16 @@ def parse_organizer_response(text):
     if application_open:
         updates["status"] = "Joe Action Required" if updates.get("application_url") else "Application Open"
 
+    if any(phrase in lowered for phrase in (
+        "not accepting applications", "not accepting vendors", "not accepting food vendors",
+        "vendor applications are closed", "we are full", "no vendor spaces",
+    )):
+        updates["status"] = "Declined/Skip"
+    elif any(phrase in lowered for phrase in (
+        "applications are not open yet", "applications will open", "check back", "not open yet",
+    )):
+        updates["status"] = "Researching"
+
     permitted_products = []
     if "permit" in lowered or "allow" in lowered:
         if "cinnamon-glazed nuts" in lowered or "cinnamon glazed nuts" in lowered:
@@ -47,8 +57,14 @@ def parse_organizer_response(text):
 
     danger_terms = ("zelle", "venmo", "cashapp", "cash app", "wire transfer", "banking", "w-9", "tax id", "sign the contract")
     flags = [term for term in danger_terms if term in lowered]
+    material_requests = []
+    if any(phrase in lowered for phrase in ("send your menu", "see your menu", "copy of your menu", "provide a menu", "menu and pricing")):
+        material_requests.append("menu")
+    if any(phrase in lowered for phrase in ("send photos", "send pictures", "product photos", "booth photos", "pictures of your", "photos of your")):
+        material_requests.append("photos")
     return {
         "updates": updates,
         "flags": flags,
+        "material_requests": material_requests,
         "needs_human_review": bool(flags) or application_open,
     }

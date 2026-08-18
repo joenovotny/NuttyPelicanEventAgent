@@ -1,11 +1,14 @@
 import time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from flask import current_app
+from dateutil.parser import parse as parse_date
 
+from .discovery import discover_events
 from .email_service import GraphEmailClient
 from .inbox import sync_inbox, sync_sent_items
-from .models import Alert, Event, Message, db
+from .models import Alert, AutomationState, Event, MaterialRequest, Message, db
 from .questions import missing_questions
 from .routes import _event_subject, _outreach_draft
 
@@ -53,16 +56,65 @@ def _is_due(value, now):
     return value <= now
 
 
+def _send_requested_materials(now):
+    sent = stopped = 0
+    for request in MaterialRequest.query.filter_by(fulfilled=False).all():
+        event = request.event
+        requested = set(request.requested.split(","))
+        paths = []
+        if "menu" in requested and current_app.config["OUTREACH_MENU_PATH"]:
+            paths.append(current_app.config["OUTREACH_MENU_PATH"])
+        if "photos" in requested:
+            paths.extend(current_app.config["OUTREACH_PHOTO_PATHS"])
+        missing = []
+        if "menu" in requested and not current_app.config["OUTREACH_MENU_PATH"]:
+            missing.append("menu PDF")
+        if "photos" in requested and not current_app.config["OUTREACH_PHOTO_PATHS"]:
+            missing.append("approved photos")
+        missing.extend(str(path) for path in paths if not Path(path).is_file())
+        if missing:
+            event.status = "Joe Action Required"
+            create_alert(event, "materials-missing", "Organizer requested outreach materials", "Missing: " + ", ".join(missing))
+            stopped += 1
+            continue
+        labels = " and ".join(sorted(requested))
+        subject = _event_subject(event, f"Requested {labels} — {event.name}")
+        body = f"""Hello,
+
+Thank you for your interest. Attached are the requested Nutty Pelican {labels} for your review.
+
+We are gathering event information only. Joe will personally review and complete any application, agreement, or payment.
+
+Thank you,
+Nutty Pelican Events Team
+{current_app.config['OUTREACH_FROM_ADDRESS']}"""
+        GraphEmailClient().send(event.contact_email, subject, body, attachments=paths)
+        db.session.add(Message(event=event, direction="outbound", subject=subject, body=body))
+        request.fulfilled = True
+        event.status = "Waiting"
+        event.last_contact_at = now
+        event.follow_up_at = now + timedelta(days=current_app.config["AUTOMATION_FOLLOW_UP_DAYS"])
+        sent += 1
+    db.session.commit()
+    return sent, stopped
+
+
 def run_automation_once(now=None):
     """Import replies and perform only enabled, bounded outreach actions."""
     now = now or datetime.now(timezone.utc)
+    discovery = {"checked": 0, "created": 0, "qualified": 0, "errors": []}
+    if current_app.config["DISCOVERY_ENABLED"]:
+        state = db.session.get(AutomationState, "last_discovery_at")
+        last_run = parse_date(state.value) if state and state.value else None
+        due = not last_run or now - last_run >= timedelta(hours=current_app.config["DISCOVERY_INTERVAL_HOURS"])
+        if due:
+            discovery = discover_events()
     imported = sync_inbox(current_app.config["AUTOMATION_LOOKBACK_HOURS"])
     sent_imported = sync_sent_items(current_app.config["AUTOMATION_LOOKBACK_HOURS"])
-    sent = 0
-    stopped = 0
+    sent, stopped = _send_requested_materials(now) if current_app.config["AUTOMATION_SEND_ENABLED"] else (0, 0)
 
     if not current_app.config["AUTOMATION_SEND_ENABLED"]:
-        return {"imported": imported, "sent_imported": sent_imported, "sent": sent, "stopped": stopped}
+        return {"discovery": discovery, "imported": imported, "sent_imported": sent_imported, "sent": sent, "stopped": stopped}
 
     due_events = Event.query.filter(
         Event.status.in_(("Qualified", "Waiting", "Follow-up Needed")),
@@ -96,7 +148,7 @@ def run_automation_once(now=None):
             create_alert(event, "automation-error", "Automation stopped", str(exc))
             stopped += 1
     db.session.commit()
-    return {"imported": imported, "sent_imported": sent_imported, "sent": sent, "stopped": stopped}
+    return {"discovery": discovery, "imported": imported, "sent_imported": sent_imported, "sent": sent, "stopped": stopped}
 
 
 def run_worker():

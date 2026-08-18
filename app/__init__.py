@@ -21,6 +21,11 @@ def create_app(test_config=None):
         AUTOMATION_LOOKBACK_HOURS=int(os.getenv("AUTOMATION_LOOKBACK_HOURS", "72")),
         AUTOMATION_FOLLOW_UP_DAYS=int(os.getenv("AUTOMATION_FOLLOW_UP_DAYS", "3")),
         AUTOMATION_MAX_FOLLOW_UPS=int(os.getenv("AUTOMATION_MAX_FOLLOW_UPS", "2")),
+        DISCOVERY_ENABLED=os.getenv("DISCOVERY_ENABLED", "false").lower() == "true",
+        DISCOVERY_INTERVAL_HOURS=int(os.getenv("DISCOVERY_INTERVAL_HOURS", "24")),
+        BRAVE_SEARCH_API_KEY=os.getenv("BRAVE_SEARCH_API_KEY", ""),
+        OUTREACH_MENU_PATH=os.getenv("OUTREACH_MENU_PATH", ""),
+        OUTREACH_PHOTO_PATHS=[value.strip() for value in os.getenv("OUTREACH_PHOTO_PATHS", "").split(",") if value.strip()],
     )
     if test_config:
         app.config.update(test_config)
@@ -61,4 +66,11 @@ def create_app(test_config=None):
         from .automation import run_worker
 
         run_worker()
+
+    @app.cli.command("discover-now")
+    def discover_now_command():
+        """Discover candidate events from configured official sources."""
+        from .discovery import discover_events
+
+        print(discover_events())
     return app

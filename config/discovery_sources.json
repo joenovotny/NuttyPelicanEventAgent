@@ -1,0 +1,37 @@
+{
+  "sources": [
+    {
+      "name": "City of Wilmington Events",
+      "url": "https://www.wilmingtonnc.gov/Events-directory/Events-Calendar",
+      "allowed_host": "www.wilmingtonnc.gov",
+      "link_patterns": ["/Events-directory/"],
+      "automated": false
+    },
+    {
+      "name": "Wilmington and Beaches Events",
+      "url": "https://www.wilmingtonandbeaches.com/events/?sort=date",
+      "allowed_host": "www.wilmingtonandbeaches.com",
+      "link_patterns": ["/event/"],
+      "automated": false
+    },
+    {
+      "name": "New Hanover County Calendar",
+      "url": "https://www.nhcgov.com/Calendar.aspx",
+      "allowed_host": "www.nhcgov.com",
+      "link_patterns": ["/Calendar.aspx?EID="],
+      "automated": true
+    }
+  ],
+  "search_queries": [
+    "2026 festival food vendors Wilmington NC",
+    "2026 festival vendor application Wilmington NC",
+    "2026 fair market food vendors New Hanover County NC",
+    "2026 festival vendor application Brunswick County NC",
+    "2026 festival vendor application Pender County NC",
+    "2026 community festival food trucks Leland Southport Carolina Beach NC"
+  ],
+  "area_signals": ["wilmington", "new hanover", "leland", "carolina beach", "kure beach", "wrightsville beach", "southport", "bolivia", "shallotte", "burgaw", "hampstead", "pender county", "brunswick county"],
+  "aggregator_hosts": ["eventbrite.com", "facebook.com", "instagram.com", "wilmingtonandbeaches.com", "brunswicknc.com"],
+  "event_signals": ["festival", "fair", "market", "celebration", "community day", "food truck", "street festival"],
+  "vendor_signals": ["food vendor", "vendor application", "vendors wanted", "become a vendor", "vendor registration", "food truck"]
+}
